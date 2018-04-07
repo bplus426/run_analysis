@@ -1,0 +1,63 @@
+setwd("c:/users/wfairy/desktop/r")
+
+list.files()
+rm(list=ls())
+
+# 1. Merges the training and the test sets to create one data set.
+
+test_x<-read.table("./test/X_test_txt")
+train_x<-read.table("./train/X_train_txt")
+
+    x<-rbind(test_x, train_x)
+
+test_y<-read.table("./test/y_test_txt")
+train_y<-read.table("./train/y_train_txt")
+
+    y<-rbind(test_y, train_y)
+
+test_subject<-read.table("./test/subject_test_txt")
+train_subject<-read.table("./train/subject_train_txt")
+
+    subject<-rbind(test_subject, train_subject)
+    colnames(subject)<-'subject'
+
+features <- read.table("./features.txt")
+activity_labels <- read.table("./activity_labels.txt")
+    
+
+    label<-merge(x=activity_labels, y=y, by=1)[,2]
+
+# 2. Extracts only the measurements on the mean and standard deviation for each measurement.
+
+colnames(all_x) <- c(as.character(features[,2]))
+Mean<-grep("mean()",colnames(all_x),fixed=TRUE)
+SD<-grep("std()",colnames(all_x),fixed=TRUE)
+MeanSD<-all_x[,c(Mean,SD)]
+
+# 3. Uses descriptive activity names to name the activities in the data set.
+
+all_y<-rbind(train_y,test_y)
+all_activity<-cbind(all_y,MeanSD)
+colnames(all_activity)[1] <- "Activity"
+
+# 4. Appropriately labels the data set with descriptive activity names.
+activity_labels[,2]<-as.character(activity_labels[,2])
+
+for(i in 1:length(all_activity[,1])){
+    all_activity[i,1]<-activity_labels[all_activity[i,1],2]
+}
+
+# 5. Creates a second, independent tidy data set with the average of each variable for each activity and each subject.
+
+subject_all<-rbind(test_subject,train_subject)
+all<-cbind(subject_all,all_activity)
+colnames(all)[1] <- "Subject"
+Tidy <- aggregate( all[,3] ~ Subject+Activity, data = all, FUN= "mean" )
+
+for(i in 4:ncol(all)){
+    Tidy[,i] <- aggregate( all[,i] ~ Subject+Activity, data = all, FUN= "mean" )[,3]
+}
+
+colnames(Tidy)[3:ncol(Tidy)] <- colnames(MeanSD)
+write.table(Tidy, file = "dt")
+
